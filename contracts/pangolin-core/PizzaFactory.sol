@@ -4,6 +4,9 @@ import './interfaces/IPizzaFactory.sol';
 import './PizzaPair.sol';
 
 contract PizzaFactory is IPizzaFactory {
+
+    bytes32 public constant INIT_CODE_PAIR_HASH = keccak256(abi.encodePacked(type(PizzaPair).creationCode));
+
     address public feeTo;
     address public feeToSetter;
 
