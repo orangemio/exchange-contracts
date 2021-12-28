@@ -1,32 +1,32 @@
 pragma solidity =0.6.6;
 
-import '../pangolin-core/interfaces/IPangolinFactory.sol';
+import '../pangolin-core/interfaces/IPizzaFactory.sol';
 import '../pangolin-lib/libraries/TransferHelper.sol';
 
-import './interfaces/IPangolinRouter.sol';
-import './libraries/PangolinLibrary.sol';
+import './interfaces/IPizzaRouter.sol';
+import './libraries/PizzaLibrary.sol';
 import './libraries/SafeMath.sol';
 import './interfaces/IERC20.sol';
-import './interfaces/IWAVAX.sol';
+import './interfaces/IWBNB.sol';
 
-contract PangolinRouter is IPangolinRouter {
+contract PizzaRouter is IPizzaRouter {
     using SafeMath for uint;
 
     address public immutable override factory;
-    address public immutable override WAVAX;
+    address public immutable override WBNB;
 
     modifier ensure(uint deadline) {
-        require(deadline >= block.timestamp, 'PangolinRouter: EXPIRED');
+        require(deadline >= block.timestamp, 'PizzaRouter: EXPIRED');
         _;
     }
 
-    constructor(address _factory, address _WAVAX) public {
+    constructor(address _factory, address _WBNB) public {
         factory = _factory;
-        WAVAX = _WAVAX;
+        WBNB = _WBNB;
     }
 
     receive() external payable {
-        assert(msg.sender == WAVAX); // only accept AVAX via fallback from the WAVAX contract
+        assert(msg.sender == WBNB); // only accept BNB via fallback from the WBNB contract
     }
 
     // **** ADD LIQUIDITY ****
@@ -39,21 +39,21 @@ contract PangolinRouter is IPangolinRouter {
         uint amountBMin
     ) internal virtual returns (uint amountA, uint amountB) {
         // create the pair if it doesn't exist yet
-        if (IPangolinFactory(factory).getPair(tokenA, tokenB) == address(0)) {
-            IPangolinFactory(factory).createPair(tokenA, tokenB);
+        if (IPizzaFactory(factory).getPair(tokenA, tokenB) == address(0)) {
+            IPizzaFactory(factory).createPair(tokenA, tokenB);
         }
-        (uint reserveA, uint reserveB) = PangolinLibrary.getReserves(factory, tokenA, tokenB);
+        (uint reserveA, uint reserveB) = PizzaLibrary.getReserves(factory, tokenA, tokenB);
         if (reserveA == 0 && reserveB == 0) {
             (amountA, amountB) = (amountADesired, amountBDesired);
         } else {
-            uint amountBOptimal = PangolinLibrary.quote(amountADesired, reserveA, reserveB);
+            uint amountBOptimal = PizzaLibrary.quote(amountADesired, reserveA, reserveB);
             if (amountBOptimal <= amountBDesired) {
-                require(amountBOptimal >= amountBMin, 'PangolinRouter: INSUFFICIENT_B_AMOUNT');
+                require(amountBOptimal >= amountBMin, 'PizzaRouter: INSUFFICIENT_B_AMOUNT');
                 (amountA, amountB) = (amountADesired, amountBOptimal);
             } else {
-                uint amountAOptimal = PangolinLibrary.quote(amountBDesired, reserveB, reserveA);
+                uint amountAOptimal = PizzaLibrary.quote(amountBDesired, reserveB, reserveA);
                 assert(amountAOptimal <= amountADesired);
-                require(amountAOptimal >= amountAMin, 'PangolinRouter: INSUFFICIENT_A_AMOUNT');
+                require(amountAOptimal >= amountAMin, 'PizzaRouter: INSUFFICIENT_A_AMOUNT');
                 (amountA, amountB) = (amountAOptimal, amountBDesired);
             }
         }
@@ -69,34 +69,34 @@ contract PangolinRouter is IPangolinRouter {
         uint deadline
     ) external virtual override ensure(deadline) returns (uint amountA, uint amountB, uint liquidity) {
         (amountA, amountB) = _addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin);
-        address pair = PangolinLibrary.pairFor(factory, tokenA, tokenB);
+        address pair = PizzaLibrary.pairFor(factory, tokenA, tokenB);
         TransferHelper.safeTransferFrom(tokenA, msg.sender, pair, amountA);
         TransferHelper.safeTransferFrom(tokenB, msg.sender, pair, amountB);
-        liquidity = IPangolinPair(pair).mint(to);
+        liquidity = IPizzaPair(pair).mint(to);
     }
-    function addLiquidityAVAX(
+    function addLiquidityBNB(
         address token,
         uint amountTokenDesired,
         uint amountTokenMin,
-        uint amountAVAXMin,
+        uint amountBNBMin,
         address to,
         uint deadline
-    ) external virtual override payable ensure(deadline) returns (uint amountToken, uint amountAVAX, uint liquidity) {
-        (amountToken, amountAVAX) = _addLiquidity(
+    ) external virtual override payable ensure(deadline) returns (uint amountToken, uint amountBNB, uint liquidity) {
+        (amountToken, amountBNB) = _addLiquidity(
             token,
-            WAVAX,
+            WBNB,
             amountTokenDesired,
             msg.value,
             amountTokenMin,
-            amountAVAXMin
+            amountBNBMin
         );
-        address pair = PangolinLibrary.pairFor(factory, token, WAVAX);
+        address pair = PizzaLibrary.pairFor(factory, token, WBNB);
         TransferHelper.safeTransferFrom(token, msg.sender, pair, amountToken);
-        IWAVAX(WAVAX).deposit{value: amountAVAX}();
-        assert(IWAVAX(WAVAX).transfer(pair, amountAVAX));
-        liquidity = IPangolinPair(pair).mint(to);
-        // refund dust AVAX, if any
-        if (msg.value > amountAVAX) TransferHelper.safeTransferAVAX(msg.sender, msg.value - amountAVAX);
+        IWBNB(WBNB).deposit{value: amountBNB}();
+        assert(IWBNB(WBNB).transfer(pair, amountBNB));
+        liquidity = IPizzaPair(pair).mint(to);
+        // refund dust BNB, if any
+        if (msg.value > amountBNB) TransferHelper.safeTransferBNB(msg.sender, msg.value - amountBNB);
     }
 
     // **** REMOVE LIQUIDITY ****
@@ -109,34 +109,34 @@ contract PangolinRouter is IPangolinRouter {
         address to,
         uint deadline
     ) public virtual override ensure(deadline) returns (uint amountA, uint amountB) {
-        address pair = PangolinLibrary.pairFor(factory, tokenA, tokenB);
-        IPangolinPair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
-        (uint amount0, uint amount1) = IPangolinPair(pair).burn(to);
-        (address token0,) = PangolinLibrary.sortTokens(tokenA, tokenB);
+        address pair = PizzaLibrary.pairFor(factory, tokenA, tokenB);
+        IPizzaPair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
+        (uint amount0, uint amount1) = IPizzaPair(pair).burn(to);
+        (address token0,) = PizzaLibrary.sortTokens(tokenA, tokenB);
         (amountA, amountB) = tokenA == token0 ? (amount0, amount1) : (amount1, amount0);
-        require(amountA >= amountAMin, 'PangolinRouter: INSUFFICIENT_A_AMOUNT');
-        require(amountB >= amountBMin, 'PangolinRouter: INSUFFICIENT_B_AMOUNT');
+        require(amountA >= amountAMin, 'PizzaRouter: INSUFFICIENT_A_AMOUNT');
+        require(amountB >= amountBMin, 'PizzaRouter: INSUFFICIENT_B_AMOUNT');
     }
-    function removeLiquidityAVAX(
+    function removeLiquidityBNB(
         address token,
         uint liquidity,
         uint amountTokenMin,
-        uint amountAVAXMin,
+        uint amountBNBMin,
         address to,
         uint deadline
-    ) public virtual override ensure(deadline) returns (uint amountToken, uint amountAVAX) {
-        (amountToken, amountAVAX) = removeLiquidity(
+    ) public virtual override ensure(deadline) returns (uint amountToken, uint amountBNB) {
+        (amountToken, amountBNB) = removeLiquidity(
             token,
-            WAVAX,
+            WBNB,
             liquidity,
             amountTokenMin,
-            amountAVAXMin,
+            amountBNBMin,
             address(this),
             deadline
         );
         TransferHelper.safeTransfer(token, to, amountToken);
-        IWAVAX(WAVAX).withdraw(amountAVAX);
-        TransferHelper.safeTransferAVAX(to, amountAVAX);
+        IWBNB(WBNB).withdraw(amountBNB);
+        TransferHelper.safeTransferBNB(to, amountBNB);
     }
     function removeLiquidityWithPermit(
         address tokenA,
@@ -148,62 +148,62 @@ contract PangolinRouter is IPangolinRouter {
         uint deadline,
         bool approveMax, uint8 v, bytes32 r, bytes32 s
     ) external virtual override returns (uint amountA, uint amountB) {
-        address pair = PangolinLibrary.pairFor(factory, tokenA, tokenB);
+        address pair = PizzaLibrary.pairFor(factory, tokenA, tokenB);
         uint value = approveMax ? uint(-1) : liquidity;
-        IPangolinPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+        IPizzaPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         (amountA, amountB) = removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, to, deadline);
     }
-    function removeLiquidityAVAXWithPermit(
+    function removeLiquidityBNBWithPermit(
         address token,
         uint liquidity,
         uint amountTokenMin,
-        uint amountAVAXMin,
+        uint amountBNBMin,
         address to,
         uint deadline,
         bool approveMax, uint8 v, bytes32 r, bytes32 s
-    ) external virtual override returns (uint amountToken, uint amountAVAX) {
-        address pair = PangolinLibrary.pairFor(factory, token, WAVAX);
+    ) external virtual override returns (uint amountToken, uint amountBNB) {
+        address pair = PizzaLibrary.pairFor(factory, token, WBNB);
         uint value = approveMax ? uint(-1) : liquidity;
-        IPangolinPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
-        (amountToken, amountAVAX) = removeLiquidityAVAX(token, liquidity, amountTokenMin, amountAVAXMin, to, deadline);
+        IPizzaPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+        (amountToken, amountBNB) = removeLiquidityBNB(token, liquidity, amountTokenMin, amountBNBMin, to, deadline);
     }
 
     // **** REMOVE LIQUIDITY (supporting fee-on-transfer tokens) ****
-    function removeLiquidityAVAXSupportingFeeOnTransferTokens(
+    function removeLiquidityBNBSupportingFeeOnTransferTokens(
         address token,
         uint liquidity,
         uint amountTokenMin,
-        uint amountAVAXMin,
+        uint amountBNBMin,
         address to,
         uint deadline
-    ) public virtual override ensure(deadline) returns (uint amountAVAX) {
-        (, amountAVAX) = removeLiquidity(
+    ) public virtual override ensure(deadline) returns (uint amountBNB) {
+        (, amountBNB) = removeLiquidity(
             token,
-            WAVAX,
+            WBNB,
             liquidity,
             amountTokenMin,
-            amountAVAXMin,
+            amountBNBMin,
             address(this),
             deadline
         );
         TransferHelper.safeTransfer(token, to, IERC20(token).balanceOf(address(this)));
-        IWAVAX(WAVAX).withdraw(amountAVAX);
-        TransferHelper.safeTransferAVAX(to, amountAVAX);
+        IWBNB(WBNB).withdraw(amountBNB);
+        TransferHelper.safeTransferBNB(to, amountBNB);
     }
-    function removeLiquidityAVAXWithPermitSupportingFeeOnTransferTokens(
+    function removeLiquidityBNBWithPermitSupportingFeeOnTransferTokens(
         address token,
         uint liquidity,
         uint amountTokenMin,
-        uint amountAVAXMin,
+        uint amountBNBMin,
         address to,
         uint deadline,
         bool approveMax, uint8 v, bytes32 r, bytes32 s
-    ) external virtual override returns (uint amountAVAX) {
-        address pair = PangolinLibrary.pairFor(factory, token, WAVAX);
+    ) external virtual override returns (uint amountBNB) {
+        address pair = PizzaLibrary.pairFor(factory, token, WBNB);
         uint value = approveMax ? uint(-1) : liquidity;
-        IPangolinPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
-        amountAVAX = removeLiquidityAVAXSupportingFeeOnTransferTokens(
-            token, liquidity, amountTokenMin, amountAVAXMin, to, deadline
+        IPizzaPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+        amountBNB = removeLiquidityBNBSupportingFeeOnTransferTokens(
+            token, liquidity, amountTokenMin, amountBNBMin, to, deadline
         );
     }
 
@@ -212,11 +212,11 @@ contract PangolinRouter is IPangolinRouter {
     function _swap(uint[] memory amounts, address[] memory path, address _to) internal virtual {
         for (uint i; i < path.length - 1; i++) {
             (address input, address output) = (path[i], path[i + 1]);
-            (address token0,) = PangolinLibrary.sortTokens(input, output);
+            (address token0,) = PizzaLibrary.sortTokens(input, output);
             uint amountOut = amounts[i + 1];
             (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
-            address to = i < path.length - 2 ? PangolinLibrary.pairFor(factory, output, path[i + 2]) : _to;
-            IPangolinPair(PangolinLibrary.pairFor(factory, input, output)).swap(
+            address to = i < path.length - 2 ? PizzaLibrary.pairFor(factory, output, path[i + 2]) : _to;
+            IPizzaPair(PizzaLibrary.pairFor(factory, input, output)).swap(
                 amount0Out, amount1Out, to, new bytes(0)
             );
         }
@@ -228,10 +228,10 @@ contract PangolinRouter is IPangolinRouter {
         address to,
         uint deadline
     ) external virtual override ensure(deadline) returns (uint[] memory amounts) {
-        amounts = PangolinLibrary.getAmountsOut(factory, amountIn, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, 'PangolinRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        amounts = PizzaLibrary.getAmountsOut(factory, amountIn, path);
+        require(amounts[amounts.length - 1] >= amountOutMin, 'PizzaRouter: INSUFFICIENT_OUTPUT_AMOUNT');
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, PangolinLibrary.pairFor(factory, path[0], path[1]), amounts[0]
+            path[0], msg.sender, PizzaLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
         _swap(amounts, path, to);
     }
@@ -242,14 +242,14 @@ contract PangolinRouter is IPangolinRouter {
         address to,
         uint deadline
     ) external virtual override ensure(deadline) returns (uint[] memory amounts) {
-        amounts = PangolinLibrary.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= amountInMax, 'PangolinRouter: EXCESSIVE_INPUT_AMOUNT');
+        amounts = PizzaLibrary.getAmountsIn(factory, amountOut, path);
+        require(amounts[0] <= amountInMax, 'PizzaRouter: EXCESSIVE_INPUT_AMOUNT');
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, PangolinLibrary.pairFor(factory, path[0], path[1]), amounts[0]
+            path[0], msg.sender, PizzaLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
         _swap(amounts, path, to);
     }
-    function swapExactAVAXForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
+    function swapExactBNBForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
         external
         virtual
         override
@@ -257,48 +257,48 @@ contract PangolinRouter is IPangolinRouter {
         ensure(deadline)
         returns (uint[] memory amounts)
     {
-        require(path[0] == WAVAX, 'PangolinRouter: INVALID_PATH');
-        amounts = PangolinLibrary.getAmountsOut(factory, msg.value, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, 'PangolinRouter: INSUFFICIENT_OUTPUT_AMOUNT');
-        IWAVAX(WAVAX).deposit{value: amounts[0]}();
-        assert(IWAVAX(WAVAX).transfer(PangolinLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
+        require(path[0] == WBNB, 'PizzaRouter: INVALID_PATH');
+        amounts = PizzaLibrary.getAmountsOut(factory, msg.value, path);
+        require(amounts[amounts.length - 1] >= amountOutMin, 'PizzaRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        IWBNB(WBNB).deposit{value: amounts[0]}();
+        assert(IWBNB(WBNB).transfer(PizzaLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
         _swap(amounts, path, to);
     }
-    function swapTokensForExactAVAX(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
+    function swapTokensForExactBNB(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
         external
         virtual
         override
         ensure(deadline)
         returns (uint[] memory amounts)
     {
-        require(path[path.length - 1] == WAVAX, 'PangolinRouter: INVALID_PATH');
-        amounts = PangolinLibrary.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= amountInMax, 'PangolinRouter: EXCESSIVE_INPUT_AMOUNT');
+        require(path[path.length - 1] == WBNB, 'PizzaRouter: INVALID_PATH');
+        amounts = PizzaLibrary.getAmountsIn(factory, amountOut, path);
+        require(amounts[0] <= amountInMax, 'PizzaRouter: EXCESSIVE_INPUT_AMOUNT');
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, PangolinLibrary.pairFor(factory, path[0], path[1]), amounts[0]
+            path[0], msg.sender, PizzaLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
         _swap(amounts, path, address(this));
-        IWAVAX(WAVAX).withdraw(amounts[amounts.length - 1]);
-        TransferHelper.safeTransferAVAX(to, amounts[amounts.length - 1]);
+        IWBNB(WBNB).withdraw(amounts[amounts.length - 1]);
+        TransferHelper.safeTransferBNB(to, amounts[amounts.length - 1]);
     }
-    function swapExactTokensForAVAX(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
+    function swapExactTokensForBNB(uint amountIn, uint amountOutMin, address[] calldata path, address to, uint deadline)
         external
         virtual
         override
         ensure(deadline)
         returns (uint[] memory amounts)
     {
-        require(path[path.length - 1] == WAVAX, 'PangolinRouter: INVALID_PATH');
-        amounts = PangolinLibrary.getAmountsOut(factory, amountIn, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, 'PangolinRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        require(path[path.length - 1] == WBNB, 'PizzaRouter: INVALID_PATH');
+        amounts = PizzaLibrary.getAmountsOut(factory, amountIn, path);
+        require(amounts[amounts.length - 1] >= amountOutMin, 'PizzaRouter: INSUFFICIENT_OUTPUT_AMOUNT');
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, PangolinLibrary.pairFor(factory, path[0], path[1]), amounts[0]
+            path[0], msg.sender, PizzaLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
         _swap(amounts, path, address(this));
-        IWAVAX(WAVAX).withdraw(amounts[amounts.length - 1]);
-        TransferHelper.safeTransferAVAX(to, amounts[amounts.length - 1]);
+        IWBNB(WBNB).withdraw(amounts[amounts.length - 1]);
+        TransferHelper.safeTransferBNB(to, amounts[amounts.length - 1]);
     }
-    function swapAVAXForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline)
+    function swapBNBForExactTokens(uint amountOut, address[] calldata path, address to, uint deadline)
         external
         virtual
         override
@@ -306,14 +306,14 @@ contract PangolinRouter is IPangolinRouter {
         ensure(deadline)
         returns (uint[] memory amounts)
     {
-        require(path[0] == WAVAX, 'PangolinRouter: INVALID_PATH');
-        amounts = PangolinLibrary.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= msg.value, 'PangolinRouter: EXCESSIVE_INPUT_AMOUNT');
-        IWAVAX(WAVAX).deposit{value: amounts[0]}();
-        assert(IWAVAX(WAVAX).transfer(PangolinLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
+        require(path[0] == WBNB, 'PizzaRouter: INVALID_PATH');
+        amounts = PizzaLibrary.getAmountsIn(factory, amountOut, path);
+        require(amounts[0] <= msg.value, 'PizzaRouter: EXCESSIVE_INPUT_AMOUNT');
+        IWBNB(WBNB).deposit{value: amounts[0]}();
+        assert(IWBNB(WBNB).transfer(PizzaLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
         _swap(amounts, path, to);
-        // refund dust AVAX, if any
-        if (msg.value > amounts[0]) TransferHelper.safeTransferAVAX(msg.sender, msg.value - amounts[0]);
+        // refund dust BNB, if any
+        if (msg.value > amounts[0]) TransferHelper.safeTransferBNB(msg.sender, msg.value - amounts[0]);
     }
 
     // **** SWAP (supporting fee-on-transfer tokens) ****
@@ -321,18 +321,18 @@ contract PangolinRouter is IPangolinRouter {
     function _swapSupportingFeeOnTransferTokens(address[] memory path, address _to) internal virtual {
         for (uint i; i < path.length - 1; i++) {
             (address input, address output) = (path[i], path[i + 1]);
-            (address token0,) = PangolinLibrary.sortTokens(input, output);
-            IPangolinPair pair = IPangolinPair(PangolinLibrary.pairFor(factory, input, output));
+            (address token0,) = PizzaLibrary.sortTokens(input, output);
+            IPizzaPair pair = IPizzaPair(PizzaLibrary.pairFor(factory, input, output));
             uint amountInput;
             uint amountOutput;
             { // scope to avoid stack too deep errors
             (uint reserve0, uint reserve1,) = pair.getReserves();
             (uint reserveInput, uint reserveOutput) = input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
             amountInput = IERC20(input).balanceOf(address(pair)).sub(reserveInput);
-            amountOutput = PangolinLibrary.getAmountOut(amountInput, reserveInput, reserveOutput);
+            amountOutput = PizzaLibrary.getAmountOut(amountInput, reserveInput, reserveOutput);
             }
             (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOutput) : (amountOutput, uint(0));
-            address to = i < path.length - 2 ? PangolinLibrary.pairFor(factory, output, path[i + 2]) : _to;
+            address to = i < path.length - 2 ? PizzaLibrary.pairFor(factory, output, path[i + 2]) : _to;
             pair.swap(amount0Out, amount1Out, to, new bytes(0));
         }
     }
@@ -344,16 +344,16 @@ contract PangolinRouter is IPangolinRouter {
         uint deadline
     ) external virtual override ensure(deadline) {
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, PangolinLibrary.pairFor(factory, path[0], path[1]), amountIn
+            path[0], msg.sender, PizzaLibrary.pairFor(factory, path[0], path[1]), amountIn
         );
         uint balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
             IERC20(path[path.length - 1]).balanceOf(to).sub(balanceBefore) >= amountOutMin,
-            'PangolinRouter: INSUFFICIENT_OUTPUT_AMOUNT'
+            'PizzaRouter: INSUFFICIENT_OUTPUT_AMOUNT'
         );
     }
-    function swapExactAVAXForTokensSupportingFeeOnTransferTokens(
+    function swapExactBNBForTokensSupportingFeeOnTransferTokens(
         uint amountOutMin,
         address[] calldata path,
         address to,
@@ -365,18 +365,18 @@ contract PangolinRouter is IPangolinRouter {
         payable
         ensure(deadline)
     {
-        require(path[0] == WAVAX, 'PangolinRouter: INVALID_PATH');
+        require(path[0] == WBNB, 'PizzaRouter: INVALID_PATH');
         uint amountIn = msg.value;
-        IWAVAX(WAVAX).deposit{value: amountIn}();
-        assert(IWAVAX(WAVAX).transfer(PangolinLibrary.pairFor(factory, path[0], path[1]), amountIn));
+        IWBNB(WBNB).deposit{value: amountIn}();
+        assert(IWBNB(WBNB).transfer(PizzaLibrary.pairFor(factory, path[0], path[1]), amountIn));
         uint balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
             IERC20(path[path.length - 1]).balanceOf(to).sub(balanceBefore) >= amountOutMin,
-            'PangolinRouter: INSUFFICIENT_OUTPUT_AMOUNT'
+            'PizzaRouter: INSUFFICIENT_OUTPUT_AMOUNT'
         );
     }
-    function swapExactTokensForAVAXSupportingFeeOnTransferTokens(
+    function swapExactTokensForBNBSupportingFeeOnTransferTokens(
         uint amountIn,
         uint amountOutMin,
         address[] calldata path,
@@ -388,20 +388,20 @@ contract PangolinRouter is IPangolinRouter {
         override
         ensure(deadline)
     {
-        require(path[path.length - 1] == WAVAX, 'PangolinRouter: INVALID_PATH');
+        require(path[path.length - 1] == WBNB, 'PizzaRouter: INVALID_PATH');
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, PangolinLibrary.pairFor(factory, path[0], path[1]), amountIn
+            path[0], msg.sender, PizzaLibrary.pairFor(factory, path[0], path[1]), amountIn
         );
         _swapSupportingFeeOnTransferTokens(path, address(this));
-        uint amountOut = IERC20(WAVAX).balanceOf(address(this));
-        require(amountOut >= amountOutMin, 'PangolinRouter: INSUFFICIENT_OUTPUT_AMOUNT');
-        IWAVAX(WAVAX).withdraw(amountOut);
-        TransferHelper.safeTransferAVAX(to, amountOut);
+        uint amountOut = IERC20(WBNB).balanceOf(address(this));
+        require(amountOut >= amountOutMin, 'PizzaRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        IWBNB(WBNB).withdraw(amountOut);
+        TransferHelper.safeTransferBNB(to, amountOut);
     }
 
     // **** LIBRARY FUNCTIONS ****
     function quote(uint amountA, uint reserveA, uint reserveB) public pure virtual override returns (uint amountB) {
-        return PangolinLibrary.quote(amountA, reserveA, reserveB);
+        return PizzaLibrary.quote(amountA, reserveA, reserveB);
     }
 
     function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut)
@@ -411,7 +411,7 @@ contract PangolinRouter is IPangolinRouter {
         override
         returns (uint amountOut)
     {
-        return PangolinLibrary.getAmountOut(amountIn, reserveIn, reserveOut);
+        return PizzaLibrary.getAmountOut(amountIn, reserveIn, reserveOut);
     }
 
     function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut)
@@ -421,7 +421,7 @@ contract PangolinRouter is IPangolinRouter {
         override
         returns (uint amountIn)
     {
-        return PangolinLibrary.getAmountIn(amountOut, reserveIn, reserveOut);
+        return PizzaLibrary.getAmountIn(amountOut, reserveIn, reserveOut);
     }
 
     function getAmountsOut(uint amountIn, address[] memory path)
@@ -431,7 +431,7 @@ contract PangolinRouter is IPangolinRouter {
         override
         returns (uint[] memory amounts)
     {
-        return PangolinLibrary.getAmountsOut(factory, amountIn, path);
+        return PizzaLibrary.getAmountsOut(factory, amountIn, path);
     }
 
     function getAmountsIn(uint amountOut, address[] memory path)
@@ -441,6 +441,6 @@ contract PangolinRouter is IPangolinRouter {
         override
         returns (uint[] memory amounts)
     {
-        return PangolinLibrary.getAmountsIn(factory, amountOut, path);
+        return PizzaLibrary.getAmountsIn(factory, amountOut, path);
     }
 }

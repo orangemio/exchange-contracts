@@ -25,7 +25,7 @@
     "hardhat-tracer": "^1.0.0-alpha.5"
   },
   "version": "1.0.2",
-  "description": "Contracts for the Pangolin Dex.",
+  "description": "Contracts for the Pizza Dex.",
   "main": "index.js",
   "repository": {
     "type": "git",

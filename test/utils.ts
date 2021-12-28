@@ -31,54 +31,54 @@ export function getAmountOut(amountIn: BigNumber, reserveIn: BigNumber, reserveO
 }
 
 export async function getTokenContract(tokenAddress: string): Promise<Contract> {
-    return await ethers.getContractAt("IPangolinERC20", tokenAddress)
+    return await ethers.getContractAt("IPizzaERC20", tokenAddress)
 }
 
 export async function getPairContract(pairAddress: string): Promise<Contract> {
-    return await ethers.getContractAt("IPangolinPair", pairAddress)
+    return await ethers.getContractAt("IPizzaPair", pairAddress)
 }
 
-export async function getWAVAXContract(): Promise<Contract> {
-    return await ethers.getContractAt("IWAVAX", fixture.Tokens.WAVAX)
+export async function getWBNBContract(): Promise<Contract> {
+    return await ethers.getContractAt("IWBNB", fixture.Tokens.WBNB)
 }
 
-export async function fundWAVAX(account: SignerWithAddress, amount: BigNumber) {
-    const WAVAX = await getWAVAXContract()
-    await WAVAX.connect(account).deposit({value: amount})
-    expect(await WAVAX.balanceOf(account.address)).to.gte(amount)
+export async function fundWBNB(account: SignerWithAddress, amount: BigNumber) {
+    const WBNB = await getWBNBContract()
+    await WBNB.connect(account).deposit({value: amount})
+    expect(await WBNB.balanceOf(account.address)).to.gte(amount)
 }
 
-export async function fundToken(account: SignerWithAddress, tokenToFund: string, amountAvax: BigNumber): Promise<BigNumber> {
-    const WAVAX = await ethers.getContractAt("IWAVAX", fixture.Tokens.WAVAX)
+export async function fundToken(account: SignerWithAddress, tokenToFund: string, amountBNB: BigNumber): Promise<BigNumber> {
+    const WBNB = await ethers.getContractAt("IWBNB", fixture.Tokens.WBNB)
     //we're already funded in this case
-    if (tokenToFund == WAVAX.address) return amountAvax
+    if (tokenToFund == WBNB.address) return amountBNB
 
     const tokenContract = await getTokenContract(tokenToFund)
-    type TokenSymbol = keyof typeof fixture.Pairs.AVAX
+    type TokenSymbol = keyof typeof fixture.Pairs.BNB
     const tokenSymbol = await tokenContract.symbol() as TokenSymbol
-    if (!(tokenSymbol in fixture.Pairs.AVAX)) throw `No valid pair for AVAX-${tokenSymbol} required to fund the account with 1INCH from WAVAX`
-    const pairAddress: string = fixture.Pairs.AVAX[tokenSymbol]
-    const fundPairContract = await ethers.getContractAt("IPangolinPair", pairAddress)
+    if (!(tokenSymbol in fixture.Pairs.BNB)) throw `No valid pair for BNB-${tokenSymbol} required to fund the account with 1INCH from WBNB`
+    const pairAddress: string = fixture.Pairs.BNB[tokenSymbol]
+    const fundPairContract = await ethers.getContractAt("IPizzaPair", pairAddress)
     let [reserves0, reserves1] = await fundPairContract.getReserves()
     const token0: string = await fundPairContract.token0()
-    if (token0 != fixture.Tokens.WAVAX) [reserves0, reserves1] = [reserves1, reserves0]
-    expect(await WAVAX.balanceOf(account.address)).to.gte(amountAvax)
-    await WAVAX.connect(account).transfer(fundPairContract.address, amountAvax)
+    if (token0 != fixture.Tokens.WBNB) [reserves0, reserves1] = [reserves1, reserves0]
+    expect(await WBNB.balanceOf(account.address)).to.gte(amountBNB)
+    await WBNB.connect(account).transfer(fundPairContract.address, amountBNB)
     let amountOut0 = BigNumber.from(0)
-    let amountOut1 = getAmountOut(amountAvax, reserves0, reserves1)
-    if (token0 != fixture.Tokens.WAVAX) [amountOut0, amountOut1] = [amountOut1, amountOut0]
-    expect(amountOut0.add(amountOut1), "Not enough AVAX used, value is 0 due to rounding issues, use a bigger amountAvax").to.not.equal(0)
+    let amountOut1 = getAmountOut(amountBNB, reserves0, reserves1)
+    if (token0 != fixture.Tokens.WBNB) [amountOut0, amountOut1] = [amountOut1, amountOut0]
+    expect(amountOut0.add(amountOut1), "Not enough BNB used, value is 0 due to rounding issues, use a bigger amountBNB").to.not.equal(0)
     await fundPairContract.connect(account).swap(amountOut0, amountOut1, account.address, [])
     return await tokenContract.balanceOf(account.address)
 }
 
-export async function fundLiquidityToken(account: SignerWithAddress, pairAddress: string, amountAvax: BigNumber): Promise<BigNumber> {
+export async function fundLiquidityToken(account: SignerWithAddress, pairAddress: string, amountBNB: BigNumber): Promise<BigNumber> {
     const pairContract = await getPairContract(pairAddress)
-    await fundWAVAX(account, amountAvax)
+    await fundWBNB(account, amountBNB)
     let pairToken0 = await getTokenContract(await pairContract.token0())
     let pairToken1 = await getTokenContract(await pairContract.token1())    
-    let amountToken0 = await fundToken(account, pairToken0.address, amountAvax.div(2))
-    let amountToken1 = await fundToken(account, pairToken1.address, amountAvax.div(2))
+    let amountToken0 = await fundToken(account, pairToken0.address, amountBNB.div(2))
+    let amountToken1 = await fundToken(account, pairToken1.address, amountBNB.div(2))
     expect(await pairToken0.balanceOf(account.address)).to.gte(amountToken0)
     expect(await pairToken1.balanceOf(account.address)).to.gte(amountToken1)
     
