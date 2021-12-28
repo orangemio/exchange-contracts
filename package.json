@@ -22,7 +22,8 @@
     "typescript": "^4.3.5"
   },
   "dependencies": {
-    "hardhat-tracer": "^1.0.0-alpha.5"
+    "hardhat-tracer": "^1.0.0-alpha.5",
+    "sol-merger": "^3.1.0"
   },
   "version": "1.0.2",
   "description": "Contracts for the Pizza Dex.",
@@ -41,6 +42,7 @@
     "test-node": "npx hardhat node --network hardhat",
     "test-local": "npx hardhat --network localhost test",
     "lint": "prettier ./test/**/*.ts --check",
+    "build-contracts": "sol-merger \"./contracts/*/*.sol\" ./build",
     "prepublishOnly": "yarn test"
   },
   "bugs": {
