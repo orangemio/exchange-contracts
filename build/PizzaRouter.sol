@@ -273,7 +273,7 @@ library PizzaLibrary {
                 hex'ff',
                 factory,
                 keccak256(abi.encodePacked(token0, token1)),
-                hex'1be58c7b014234e7e8238c47366fc72fad7dbdedcc4b677ed5ea227b3bef7d0e' // init code hash
+                hex'e3ee2f4e6506982d4c97d02ed578b51dc7055c7d437dc2c7b302bf16f2b72c22' // init code hash
             ))));
     }
 
