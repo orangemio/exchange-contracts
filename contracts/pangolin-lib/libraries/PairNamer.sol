@@ -4,7 +4,7 @@ pragma solidity >=0.5.0;
 
 import './SafeERC20Namer.sol';
 
-// produces names for pairs of tokens using Pizza's naming scheme
+// produces names for pairs of tokens using Teddy's naming scheme
 library PairNamer {
     string private constant TOKEN_SYMBOL_PREFIX = 'PZA:';
     string private constant TOKEN_SEPARATOR = ':';

@@ -26,7 +26,7 @@
     "sol-merger": "^3.1.0"
   },
   "version": "1.0.2",
-  "description": "Contracts for the Pizza Dex.",
+  "description": "Contracts for the Teddy Dex.",
   "main": "index.js",
   "repository": {
     "type": "git",

@@ -31,11 +31,11 @@ export function getAmountOut(amountIn: BigNumber, reserveIn: BigNumber, reserveO
 }
 
 export async function getTokenContract(tokenAddress: string): Promise<Contract> {
-    return await ethers.getContractAt("IPizzaERC20", tokenAddress)
+    return await ethers.getContractAt("ITeddyERC20", tokenAddress)
 }
 
 export async function getPairContract(pairAddress: string): Promise<Contract> {
-    return await ethers.getContractAt("IPizzaPair", pairAddress)
+    return await ethers.getContractAt("ITeddyPair", pairAddress)
 }
 
 export async function getWBNBContract(): Promise<Contract> {
@@ -58,7 +58,7 @@ export async function fundToken(account: SignerWithAddress, tokenToFund: string,
     const tokenSymbol = await tokenContract.symbol() as TokenSymbol
     if (!(tokenSymbol in fixture.Pairs.BNB)) throw `No valid pair for BNB-${tokenSymbol} required to fund the account with 1INCH from WBNB`
     const pairAddress: string = fixture.Pairs.BNB[tokenSymbol]
-    const fundPairContract = await ethers.getContractAt("IPizzaPair", pairAddress)
+    const fundPairContract = await ethers.getContractAt("ITeddyPair", pairAddress)
     let [reserves0, reserves1] = await fundPairContract.getReserves()
     const token0: string = await fundPairContract.token0()
     if (token0 != fixture.Tokens.WBNB) [reserves0, reserves1] = [reserves1, reserves0]

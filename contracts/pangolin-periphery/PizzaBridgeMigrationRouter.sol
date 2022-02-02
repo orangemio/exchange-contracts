@@ -1,12 +1,12 @@
 pragma solidity ^0.7.6;
 
-import "../pangolin-core/interfaces/IPizzaERC20.sol";
+import "../pangolin-core/interfaces/ITeddyERC20.sol";
 import "../pangolin-lib/libraries/TransferHelper.sol";
 import "./interfaces/IBridgeToken.sol";
 import "./libraries/Roles.sol";
-import "./libraries/PizzaLibrary.sol";
+import "./libraries/TeddyLibrary.sol";
 
-contract PizzaBridgeMigrationRouter {
+contract TeddyBridgeMigrationRouter {
     using SafeMath for uint;
     using Roles for Roles.Role;
 
@@ -19,13 +19,13 @@ contract PizzaBridgeMigrationRouter {
 
     // safety measure to prevent clear front-running by delayed block
     modifier ensure(uint deadline) {
-        require(deadline >= block.timestamp, 'PizzaBridgeMigrationRouter: EXPIRED');
+        require(deadline >= block.timestamp, 'TeddyBridgeMigrationRouter: EXPIRED');
         _;
     }
 
     // makes sure the admin is the one calling protected methods
     modifier onlyAdmin() {
-        require(adminRole.has(msg.sender), 'PizzaBridgeMigrationRouter: Unauthorized');
+        require(adminRole.has(msg.sender), 'TeddyBridgeMigrationRouter: Unauthorized');
         _;
     }
 
@@ -35,7 +35,7 @@ contract PizzaBridgeMigrationRouter {
      * @param account The address of the account.
      */
     function addAdmin(address account) external onlyAdmin {
-        require(account != address(0), "PizzaBridgeMigrationRouter: Address 0 not allowed");
+        require(account != address(0), "TeddyBridgeMigrationRouter: Address 0 not allowed");
         adminRole.add(account);
     }
 
@@ -45,7 +45,7 @@ contract PizzaBridgeMigrationRouter {
      * @param account The address of the account.
      */
     function removeAdmin(address account) external onlyAdmin {
-        require(msg.sender != account, "PizzaBridgeMigrationRouter: You can't demote yourself");
+        require(msg.sender != account, "TeddyBridgeMigrationRouter: You can't demote yourself");
         adminRole.remove(account);
     }
 
@@ -64,8 +64,8 @@ contract PizzaBridgeMigrationRouter {
      * @param migratorAddress The WrappedERC20 token address that will be migrate the token
      */
     function addMigrator(address tokenAddress, address migratorAddress) external onlyAdmin {
-        require(tokenAddress != address(0), "PizzaBridgeMigrationRouter: tokenAddress 0 not supported");
-        require(migratorAddress != address(0), "PizzaBridgeMigrationRouter: migratorAddress 0 not supported");
+        require(tokenAddress != address(0), "TeddyBridgeMigrationRouter: tokenAddress 0 not supported");
+        require(migratorAddress != address(0), "TeddyBridgeMigrationRouter: migratorAddress 0 not supported");
         uint256 amount = IBridgeToken(migratorAddress).swapSupply(tokenAddress);
         require(
             amount > 0,
@@ -81,7 +81,7 @@ contract PizzaBridgeMigrationRouter {
      * @param spenderAddress Who's going to spend the ERC20 token
      */
     function _allowToken(address tokenAddress, address spenderAddress) internal {
-        IPizzaERC20(tokenAddress).approve(spenderAddress, type(uint).max);
+        ITeddyERC20(tokenAddress).approve(spenderAddress, type(uint).max);
     }
 
     /**
@@ -106,18 +106,18 @@ contract PizzaBridgeMigrationRouter {
         uint amountIn1,
         address to
     ) private returns (uint amount0, uint amount1, uint liquidityAmount) {
-        (uint112 reserve0, uint112 reserve1,) = IPizzaPair(pairToken).getReserves();
+        (uint112 reserve0, uint112 reserve1,) = ITeddyPair(pairToken).getReserves();
         uint quote0 = amountIn0;
-        uint quote1 = PizzaLibrary.quote(amountIn0, reserve0, reserve1);
+        uint quote1 = TeddyLibrary.quote(amountIn0, reserve0, reserve1);
         if (quote1 > amountIn1) {
             quote1 = amountIn1;
-            quote0 = PizzaLibrary.quote(amountIn1, reserve1, reserve0);
+            quote0 = TeddyLibrary.quote(amountIn1, reserve1, reserve0);
         }
         TransferHelper.safeTransfer(token0, pairToken, quote0);
         TransferHelper.safeTransfer(token1, pairToken, quote1);
         amount0 = amountIn0 - quote0;
         amount1 = amountIn1 - quote1;
-        liquidityAmount = IPizzaPair(pairToken).mint(to);
+        liquidityAmount = ITeddyPair(pairToken).mint(to);
     }
 
     /**
@@ -133,7 +133,7 @@ contract PizzaBridgeMigrationRouter {
         uint amount
     ) internal returns (uint amountTokenA, uint amountTokenB) {
         TransferHelper.safeTransferFrom(liquidityPair, msg.sender, liquidityPair, amount);
-        (amountTokenA, amountTokenB) = IPizzaPair(liquidityPair).burn(address(this));
+        (amountTokenA, amountTokenB) = ITeddyPair(liquidityPair).burn(address(this));
     }
 
     /**
@@ -143,15 +143,15 @@ contract PizzaBridgeMigrationRouter {
      * @param pairB The pair that is going to be migrated to
      */
     function _arePairsCompatible(address pairA, address pairB) internal view {
-        require(pairA != address(0), "PizzaBridgeMigrationRouter: liquidityPairFrom address 0");
-        require(pairA != address(0), "PizzaBridgeMigrationRouter: liquidityPairTo address 0");
-        require(pairA != pairB, "PizzaBridgeMigrationRouter: Cant convert to the same liquidity pairs");
+        require(pairA != address(0), "TeddyBridgeMigrationRouter: liquidityPairFrom address 0");
+        require(pairA != address(0), "TeddyBridgeMigrationRouter: liquidityPairTo address 0");
+        require(pairA != pairB, "TeddyBridgeMigrationRouter: Cant convert to the same liquidity pairs");
         require(
-            IPizzaPair(pairA).token0() == IPizzaPair(pairB).token0() ||
-            IPizzaPair(pairA).token0() == IPizzaPair(pairB).token1() ||
-            IPizzaPair(pairA).token1() == IPizzaPair(pairB).token0() ||
-            IPizzaPair(pairA).token1() == IPizzaPair(pairB).token1(),
-            "PizzaBridgeMigrationRouter: Pair does not have one token matching"
+            ITeddyPair(pairA).token0() == ITeddyPair(pairB).token0() ||
+            ITeddyPair(pairA).token0() == ITeddyPair(pairB).token1() ||
+            ITeddyPair(pairA).token1() == ITeddyPair(pairB).token0() ||
+            ITeddyPair(pairA).token1() == ITeddyPair(pairB).token1(),
+            "TeddyBridgeMigrationRouter: Pair does not have one token matching"
         );
     }
 
@@ -165,11 +165,11 @@ contract PizzaBridgeMigrationRouter {
         address tokenAddress,
         uint amount
     ) internal {
-        require(tokenAddress != address(0), "PizzaBridgeMigrationRouter: tokenAddress 0 not supported");
+        require(tokenAddress != address(0), "TeddyBridgeMigrationRouter: tokenAddress 0 not supported");
         IBridgeToken(bridgeMigrator[tokenAddress]).swap(tokenAddress, amount);
         require(
             IBridgeToken(bridgeMigrator[tokenAddress]).balanceOf(address(this)) == amount,
-            "PizzaBridgeMigrationRouter: Didn't yield the correct amount"
+            "TeddyBridgeMigrationRouter: Didn't yield the correct amount"
         );
     }
 
@@ -189,7 +189,7 @@ contract PizzaBridgeMigrationRouter {
     ) external ensure(deadline) {
         require(
             bridgeMigrator[token] != address(0),
-            "PizzaBridgeMigrationRouter: migrator not registered"
+            "TeddyBridgeMigrationRouter: migrator not registered"
         );
         TransferHelper.safeTransferFrom(token, msg.sender, address(this), amount);
         _migrateToken(token, amount);
@@ -215,7 +215,7 @@ contract PizzaBridgeMigrationRouter {
         uint deadline,
         uint8 v, bytes32 r, bytes32 s
     ) external ensure(deadline) {
-        IPizzaPair(liquidityPairFrom).permit(msg.sender, address(this), amount, deadline, v, r, s);
+        ITeddyPair(liquidityPairFrom).permit(msg.sender, address(this), amount, deadline, v, r, s);
         _migrateLiquidity(
             liquidityPairFrom,
             liquidityPairTo,
@@ -263,48 +263,48 @@ contract PizzaBridgeMigrationRouter {
         uint amount
     ) internal {
         _arePairsCompatible(liquidityPairFrom, liquidityPairTo);
-        address tokenToMigrate = IPizzaPair(liquidityPairFrom).token0();
+        address tokenToMigrate = ITeddyPair(liquidityPairFrom).token0();
         if (
-            IPizzaPair(liquidityPairFrom).token0() == IPizzaPair(liquidityPairTo).token0() ||
-            IPizzaPair(liquidityPairFrom).token0() == IPizzaPair(liquidityPairTo).token1()
+            ITeddyPair(liquidityPairFrom).token0() == ITeddyPair(liquidityPairTo).token0() ||
+            ITeddyPair(liquidityPairFrom).token0() == ITeddyPair(liquidityPairTo).token1()
         ) {
-            tokenToMigrate = IPizzaPair(liquidityPairFrom).token1();
+            tokenToMigrate = ITeddyPair(liquidityPairFrom).token1();
         }
         address newTokenAddress = bridgeMigrator[tokenToMigrate];
         require(
             newTokenAddress != address(0),
-            "PizzaBridgeMigrationRouter: Migrator not registered for the pair"
+            "TeddyBridgeMigrationRouter: Migrator not registered for the pair"
         );
         require(
-            newTokenAddress == IPizzaPair(liquidityPairTo).token0() ||
-            newTokenAddress == IPizzaPair(liquidityPairTo).token1(),
-            "PizzaBridgeMigrationRouter: Pair doesn't match the migration token"
+            newTokenAddress == ITeddyPair(liquidityPairTo).token0() ||
+            newTokenAddress == ITeddyPair(liquidityPairTo).token1(),
+            "TeddyBridgeMigrationRouter: Pair doesn't match the migration token"
         );
 
         (uint amountTokenA, uint amountTokenB) = _rescueLiquidity(liquidityPairFrom, amount);
         {
             uint amountToSwap = amountTokenA;
-            if (tokenToMigrate != IPizzaPair(liquidityPairFrom).token0()) {
+            if (tokenToMigrate != ITeddyPair(liquidityPairFrom).token0()) {
                 amountToSwap = amountTokenB;
             }
             _migrateToken(tokenToMigrate, amountToSwap);
         }
-        if (IPizzaPair(liquidityPairFrom).token0() != IPizzaPair(liquidityPairTo).token0() &&
-            IPizzaPair(liquidityPairFrom).token1() != IPizzaPair(liquidityPairTo).token1()
+        if (ITeddyPair(liquidityPairFrom).token0() != ITeddyPair(liquidityPairTo).token0() &&
+            ITeddyPair(liquidityPairFrom).token1() != ITeddyPair(liquidityPairTo).token1()
         ) {
             (amountTokenA, amountTokenB) = (amountTokenB, amountTokenA);
         }
 
         (uint changeAmount0, uint changeAmount1, ) = _addLiquidity(
             liquidityPairTo,
-            IPizzaPair(liquidityPairTo).token0(), IPizzaPair(liquidityPairTo).token1(),
+            ITeddyPair(liquidityPairTo).token0(), ITeddyPair(liquidityPairTo).token1(),
             amountTokenA, amountTokenB, to
         );
         if (changeAmount0 > 0) {
-            TransferHelper.safeTransfer(IPizzaPair(liquidityPairTo).token0(), to, changeAmount0);
+            TransferHelper.safeTransfer(ITeddyPair(liquidityPairTo).token0(), to, changeAmount0);
         }
         if (changeAmount1 > 0) {
-            TransferHelper.safeTransfer(IPizzaPair(liquidityPairTo).token1(), to, changeAmount1);
+            TransferHelper.safeTransfer(ITeddyPair(liquidityPairTo).token1(), to, changeAmount1);
         }
     }
 
@@ -317,8 +317,8 @@ contract PizzaBridgeMigrationRouter {
      * @return amount1 Amounts of token1 acquired from burning the pairAddress token
      */
     function _calculateRescueLiquidity(address pairAddress, uint amount) internal view returns (uint amount0, uint amount1) {
-        (uint112 reserves0, uint112 reserves1, ) = IPizzaPair(pairAddress).getReserves();
-        uint totalSupply = IPizzaPair(pairAddress).totalSupply();
+        (uint112 reserves0, uint112 reserves1, ) = ITeddyPair(pairAddress).getReserves();
+        uint totalSupply = ITeddyPair(pairAddress).totalSupply();
         amount0 = amount.mul(reserves0) / totalSupply;
         amount1 = amount.mul(reserves1) / totalSupply;
     }
@@ -337,20 +337,20 @@ contract PizzaBridgeMigrationRouter {
         address liquidityPairTo,
         uint amount
     ) external view returns (uint amount0, uint amount1) {
-        require(liquidityPairFrom != address(0), "PizzaBridgeMigrationRouter: liquidityPairFrom address 0 not supported");
-        require(liquidityPairTo != address(0), "PizzaBridgeMigrationRouter: liquidityPairTo address 0 not supported");
+        require(liquidityPairFrom != address(0), "TeddyBridgeMigrationRouter: liquidityPairFrom address 0 not supported");
+        require(liquidityPairTo != address(0), "TeddyBridgeMigrationRouter: liquidityPairTo address 0 not supported");
         (uint amountIn0, uint amountIn1) = _calculateRescueLiquidity(liquidityPairFrom, amount);
-        if (IPizzaPair(liquidityPairFrom).token0() != IPizzaPair(liquidityPairTo).token0() &&
-            IPizzaPair(liquidityPairFrom).token1() != IPizzaPair(liquidityPairTo).token1()
+        if (ITeddyPair(liquidityPairFrom).token0() != ITeddyPair(liquidityPairTo).token0() &&
+            ITeddyPair(liquidityPairFrom).token1() != ITeddyPair(liquidityPairTo).token1()
         ) {
             (amountIn0, amountIn1) = (amountIn1, amountIn0);
         }
-        (uint112 reserve0, uint112 reserve1,) = IPizzaPair(liquidityPairTo).getReserves();
+        (uint112 reserve0, uint112 reserve1,) = ITeddyPair(liquidityPairTo).getReserves();
         uint quote0 = amountIn0;
-        uint quote1 = PizzaLibrary.quote(amountIn0, reserve0, reserve1);
+        uint quote1 = TeddyLibrary.quote(amountIn0, reserve0, reserve1);
         if (quote1 > amountIn1) {
             quote1 = amountIn1;
-            quote0 = PizzaLibrary.quote(amountIn1, reserve1, reserve0);
+            quote0 = TeddyLibrary.quote(amountIn1, reserve1, reserve0);
         }
         amount0 = amountIn0 - quote0;
         amount1 = amountIn1 - quote1;

@@ -1,6 +1,6 @@
 pragma solidity =0.6.6;
 
-import '../interfaces/IPizzaRouter.sol';
+import '../interfaces/ITeddyRouter.sol';
 
 contract RouterEventEmitter {
     event Amounts(uint[] amounts);
@@ -16,7 +16,7 @@ contract RouterEventEmitter {
         uint deadline
     ) external {
         (bool success, bytes memory returnData) = router.delegatecall(abi.encodeWithSelector(
-            IPizzaRouter(router).swapExactTokensForTokens.selector, amountIn, amountOutMin, path, to, deadline
+            ITeddyRouter(router).swapExactTokensForTokens.selector, amountIn, amountOutMin, path, to, deadline
         ));
         assert(success);
         emit Amounts(abi.decode(returnData, (uint[])));
@@ -31,7 +31,7 @@ contract RouterEventEmitter {
         uint deadline
     ) external {
         (bool success, bytes memory returnData) = router.delegatecall(abi.encodeWithSelector(
-            IPizzaRouter(router).swapTokensForExactTokens.selector, amountOut, amountInMax, path, to, deadline
+            ITeddyRouter(router).swapTokensForExactTokens.selector, amountOut, amountInMax, path, to, deadline
         ));
         assert(success);
         emit Amounts(abi.decode(returnData, (uint[])));
@@ -45,7 +45,7 @@ contract RouterEventEmitter {
         uint deadline
     ) external payable {
         (bool success, bytes memory returnData) = router.delegatecall(abi.encodeWithSelector(
-            IPizzaRouter(router).swapExactBNBForTokens.selector, amountOutMin, path, to, deadline
+            ITeddyRouter(router).swapExactBNBForTokens.selector, amountOutMin, path, to, deadline
         ));
         assert(success);
         emit Amounts(abi.decode(returnData, (uint[])));
@@ -60,7 +60,7 @@ contract RouterEventEmitter {
         uint deadline
     ) external {
         (bool success, bytes memory returnData) = router.delegatecall(abi.encodeWithSelector(
-            IPizzaRouter(router).swapTokensForExactBNB.selector, amountOut, amountInMax, path, to, deadline
+            ITeddyRouter(router).swapTokensForExactBNB.selector, amountOut, amountInMax, path, to, deadline
         ));
         assert(success);
         emit Amounts(abi.decode(returnData, (uint[])));
@@ -75,7 +75,7 @@ contract RouterEventEmitter {
         uint deadline
     ) external {
         (bool success, bytes memory returnData) = router.delegatecall(abi.encodeWithSelector(
-            IPizzaRouter(router).swapExactTokensForBNB.selector, amountIn, amountOutMin, path, to, deadline
+            ITeddyRouter(router).swapExactTokensForBNB.selector, amountIn, amountOutMin, path, to, deadline
         ));
         assert(success);
         emit Amounts(abi.decode(returnData, (uint[])));
@@ -89,7 +89,7 @@ contract RouterEventEmitter {
         uint deadline
     ) external payable {
         (bool success, bytes memory returnData) = router.delegatecall(abi.encodeWithSelector(
-            IPizzaRouter(router).swapBNBForExactTokens.selector, amountOut, path, to, deadline
+            ITeddyRouter(router).swapBNBForExactTokens.selector, amountOut, path, to, deadline
         ));
         assert(success);
         emit Amounts(abi.decode(returnData, (uint[])));

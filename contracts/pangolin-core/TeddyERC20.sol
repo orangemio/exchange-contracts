@@ -1,48 +1,13 @@
 pragma solidity =0.5.16;
 
+import './interfaces/ITeddyERC20.sol';
+import './libraries/SafeMath.sol';
 
-interface IPizzaERC20 {
-    event Approval(address indexed owner, address indexed spender, uint value);
-    event Transfer(address indexed from, address indexed to, uint value);
-
-    function name() external pure returns (string memory);
-    function symbol() external pure returns (string memory);
-    function decimals() external pure returns (uint8);
-    function totalSupply() external view returns (uint);
-    function balanceOf(address owner) external view returns (uint);
-    function allowance(address owner, address spender) external view returns (uint);
-
-    function approve(address spender, uint value) external returns (bool);
-    function transfer(address to, uint value) external returns (bool);
-    function transferFrom(address from, address to, uint value) external returns (bool);
-
-    function DOMAIN_SEPARATOR() external view returns (bytes32);
-    function PERMIT_TYPEHASH() external pure returns (bytes32);
-    function nonces(address owner) external view returns (uint);
-
-    function permit(address owner, address spender, uint value, uint deadline, uint8 v, bytes32 r, bytes32 s) external;
-}
-
-// a library for performing overflow-safe math, courtesy of DappHub (https://github.com/dapphub/ds-math)
-library SafeMath {
-    function add(uint x, uint y) internal pure returns (uint z) {
-        require((z = x + y) >= x, 'ds-math-add-overflow');
-    }
-
-    function sub(uint x, uint y) internal pure returns (uint z) {
-        require((z = x - y) <= x, 'ds-math-sub-underflow');
-    }
-
-    function mul(uint x, uint y) internal pure returns (uint z) {
-        require(y == 0 || (z = x * y) / y == x, 'ds-math-mul-overflow');
-    }
-}
-
-contract PizzaERC20 is IPizzaERC20 {
+contract TeddyERC20 is ITeddyERC20 {
     using SafeMath for uint;
 
-    string public constant name = 'Pizza LP';
-    string public constant symbol = 'PZL';
+    string public constant name = 'Teddy LP';
+    string public constant symbol = 'TLP';
     uint8 public constant decimals = 18;
     uint  public totalSupply;
     mapping(address => uint) public balanceOf;
@@ -114,7 +79,7 @@ contract PizzaERC20 is IPizzaERC20 {
     }
 
     function permit(address owner, address spender, uint value, uint deadline, uint8 v, bytes32 r, bytes32 s) external {
-        require(deadline >= block.timestamp, 'Pizza: EXPIRED');
+        require(deadline >= block.timestamp, 'Teddy: EXPIRED');
         bytes32 digest = keccak256(
             abi.encodePacked(
                 '\x19\x01',
@@ -123,7 +88,7 @@ contract PizzaERC20 is IPizzaERC20 {
             )
         );
         address recoveredAddress = ecrecover(digest, v, r, s);
-        require(recoveredAddress != address(0) && recoveredAddress == owner, 'Pizza: INVALID_SIGNATURE');
+        require(recoveredAddress != address(0) && recoveredAddress == owner, 'Teddy: INVALID_SIGNATURE');
         _approve(owner, spender, value);
     }
 }

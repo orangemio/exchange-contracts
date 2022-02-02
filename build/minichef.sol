@@ -1,12 +1,16 @@
-/**
- *Submitted for verification at snowtrace.io on 2021-11-15
-*/
+pragma solidity 0.6.12;
+pragma solidity >=0.6.0 <0.8.0;
+pragma solidity >=0.6.0 <0.8.0;
+pragma solidity 0.6.12;
+pragma solidity 0.6.12;
+pragma solidity 0.6.12;
+pragma solidity 0.6.12;
+pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
+
 
 // Sources flattened with hardhat v2.6.8 https://hardhat.org
-
 // File @boringcrypto/boring-solidity/contracts/libraries/BoringMath.sol@v1.0.4
-
-pragma solidity 0.6.12;
 // a library for performing overflow-safe math, updated with awesomeness from of DappHub (https://github.com/dapphub/ds-math)
 library BoringMath {
     function add(uint256 a, uint256 b) internal pure returns (uint256 c) {require((c = a + b) >= b, "BoringMath: Add Overflow");}
@@ -41,11 +45,7 @@ library BoringMath32 {
     function sub(uint32 a, uint32 b) internal pure returns (uint32 c) {require((c = a - b) <= a, "BoringMath: Underflow");}
 }
 
-
 // File openzeppelin-contracts-legacy/GSN/Context.sol@v3.3.0
-
-pragma solidity >=0.6.0 <0.8.0;
-
 /*
  * @dev Provides information about the current execution context, including the
  * sender of the transaction and its data. While these are generally available
@@ -67,11 +67,7 @@ abstract contract Context {
     }
 }
 
-
 // File openzeppelin-contracts-legacy/access/Ownable.sol@v3.3.0
-
-pragma solidity >=0.6.0 <0.8.0;
-
 /**
  * @dev Contract module which provides a basic access control mechanism, where
  * there is an account (an owner) that can be granted exclusive access to
@@ -136,11 +132,7 @@ abstract contract Ownable is Context {
     }
 }
 
-
 // File contracts/libraries/SignedSafeMath.sol
-
-pragma solidity 0.6.12;
-
 library SignedSafeMath {
     int256 constant private _INT256_MIN = -2**255;
 
@@ -231,11 +223,7 @@ library SignedSafeMath {
     }
 }
 
-
 // File @boringcrypto/boring-solidity/contracts/interfaces/IERC20.sol@v1.0.4
-
-pragma solidity 0.6.12;
-
 interface IERC20 {
     function totalSupply() external view returns (uint256);
     function balanceOf(address account) external view returns (uint256);
@@ -248,10 +236,7 @@ interface IERC20 {
     function permit(address owner, address spender, uint256 value, uint256 deadline, uint8 v, bytes32 r, bytes32 s) external;
 }
 
-
 // File @boringcrypto/boring-solidity/contracts/libraries/BoringERC20.sol@v1.0.4
-
-pragma solidity 0.6.12;
 library BoringERC20 {
     function safeSymbol(IERC20 token) internal view returns(string memory) {
         (bool success, bytes memory data) = address(token).staticcall(abi.encodeWithSelector(0x95d89b41));
@@ -279,23 +264,15 @@ library BoringERC20 {
     }
 }
 
-
 // File contracts/interfaces/IRewarder.sol
-
-pragma solidity 0.6.12;
 interface IRewarder {
     using BoringERC20 for IERC20;
     function onReward(uint256 pid, address user, address recipient, uint256 rewardAmount, uint256 newLpAmount) external;
     function pendingTokens(uint256 pid, address user, uint256 rewardAmount) external view returns (IERC20[] memory, uint256[] memory);
 }
 
-
 // File contracts/MiniChefV2.sol
-
 // SPDX-License-Identifier: MIT
-
-pragma solidity 0.6.12;
-pragma experimental ABIEncoderV2;
 interface IMigratorChef {
     // Take the current LP token address and return the new LP token address.
     // Migrator should have full access to the caller's LP token.

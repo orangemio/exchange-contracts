@@ -39,8 +39,8 @@ describe("BridgeMigrationRouter", async function() {
         const bridgeTokenFactory = await ethers.getContractFactory("BridgeToken")
         owner = await getOwnerAccount()
         WBNB = await getWBNBContract()
-        const factory = await ethers.getContractAt("PizzaFactory", fixture.Factory)
-        const router = await ethers.getContractAt("PizzaRouter", fixture.Router)
+        const factory = await ethers.getContractAt("TeddyFactory", fixture.Factory)
+        const router = await ethers.getContractAt("TeddyRouter", fixture.Router)
 
         await fundWBNB(owner, BigNumber.from(10).pow(28))
         await fundToken(owner, fixture.Tokens.PNG, BigNumber.from(10).pow(25))
@@ -111,7 +111,7 @@ describe("BridgeMigrationRouter", async function() {
         account = accountGenerator()
         //this is necessary, the asserts funds the account on the assumption it has 0 WBNB
         await WBNB.connect(account).withdraw(await WBNB.balanceOf(account.address))
-        factory = await ethers.getContractFactory("PizzaBridgeMigrationRouter")
+        factory = await ethers.getContractFactory("TeddyBridgeMigrationRouter")
         migrationRouter = await factory.connect(owner).deploy()
         await migrationRouter.deployed()
         await fundWBNB(account, BigNumber.from(10).pow(26))

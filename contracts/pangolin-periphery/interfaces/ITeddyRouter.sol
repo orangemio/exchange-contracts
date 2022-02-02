@@ -1,6 +1,6 @@
 pragma solidity >=0.6.2;
 
-interface IPizzaRouter {
+interface ITeddyRouter {
     function factory() external pure returns (address);
     function WBNB() external pure returns (address);
 
