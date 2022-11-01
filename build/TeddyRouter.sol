@@ -1,7 +1,7 @@
 pragma solidity =0.6.6;
 
 
-interface ITeddyFactory {
+interface IDRACFactory {
     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
 
     function feeTo() external view returns (address);
@@ -57,7 +57,7 @@ library TransferHelper {
     }
 }
 
-interface ITeddyRouter {
+interface IDRACRouter {
     function factory() external pure returns (address);
     function WBNB() external pure returns (address);
 
@@ -190,7 +190,7 @@ interface ITeddyRouter {
     ) external;
 }
 
-interface ITeddyPair {
+interface IDRACPair {
     event Approval(address indexed owner, address indexed spender, uint value);
     event Transfer(address indexed from, address indexed to, uint value);
 
@@ -256,14 +256,14 @@ library SafeMath {
     }
 }
 
-library TeddyLibrary {
+library DRACLibrary {
     using SafeMath for uint;
 
     // returns sorted token addresses, used to handle return values from pairs sorted in this order
     function sortTokens(address tokenA, address tokenB) internal pure returns (address token0, address token1) {
-        require(tokenA != tokenB, 'TeddyLibrary: IDENTICAL_ADDRESSES');
+        require(tokenA != tokenB, 'DRACLibrary: IDENTICAL_ADDRESSES');
         (token0, token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
-        require(token0 != address(0), 'TeddyLibrary: ZERO_ADDRESS');
+        require(token0 != address(0), 'DRACLibrary: ZERO_ADDRESS');
     }
 
     // calculates the CREATE2 address for a pair without making any external calls
@@ -280,21 +280,21 @@ library TeddyLibrary {
     // fetches and sorts the reserves for a pair
     function getReserves(address factory, address tokenA, address tokenB) internal view returns (uint reserveA, uint reserveB) {
         (address token0,) = sortTokens(tokenA, tokenB);
-        (uint reserve0, uint reserve1,) = ITeddyPair(pairFor(factory, tokenA, tokenB)).getReserves();
+        (uint reserve0, uint reserve1,) = IDRACPair(pairFor(factory, tokenA, tokenB)).getReserves();
         (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
     }
 
     // given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
     function quote(uint amountA, uint reserveA, uint reserveB) internal pure returns (uint amountB) {
-        require(amountA > 0, 'TeddyLibrary: INSUFFICIENT_AMOUNT');
-        require(reserveA > 0 && reserveB > 0, 'TeddyLibrary: INSUFFICIENT_LIQUIDITY');
+        require(amountA > 0, 'DRACLibrary: INSUFFICIENT_AMOUNT');
+        require(reserveA > 0 && reserveB > 0, 'DRACLibrary: INSUFFICIENT_LIQUIDITY');
         amountB = amountA.mul(reserveB) / reserveA;
     }
 
     // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
     function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut) internal pure returns (uint amountOut) {
-        require(amountIn > 0, 'TeddyLibrary: INSUFFICIENT_INPUT_AMOUNT');
-        require(reserveIn > 0 && reserveOut > 0, 'TeddyLibrary: INSUFFICIENT_LIQUIDITY');
+        require(amountIn > 0, 'DRACLibrary: INSUFFICIENT_INPUT_AMOUNT');
+        require(reserveIn > 0 && reserveOut > 0, 'DRACLibrary: INSUFFICIENT_LIQUIDITY');
         uint amountInWithFee = amountIn.mul(9977);
         uint numerator = amountInWithFee.mul(reserveOut);
         uint denominator = reserveIn.mul(10000).add(amountInWithFee);
@@ -303,8 +303,8 @@ library TeddyLibrary {
 
     // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
     function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) internal pure returns (uint amountIn) {
-        require(amountOut > 0, 'TeddyLibrary: INSUFFICIENT_OUTPUT_AMOUNT');
-        require(reserveIn > 0 && reserveOut > 0, 'TeddyLibrary: INSUFFICIENT_LIQUIDITY');
+        require(amountOut > 0, 'DRACLibrary: INSUFFICIENT_OUTPUT_AMOUNT');
+        require(reserveIn > 0 && reserveOut > 0, 'DRACLibrary: INSUFFICIENT_LIQUIDITY');
         uint numerator = reserveIn.mul(amountOut).mul(10000);
         uint denominator = reserveOut.sub(amountOut).mul(9977);
         amountIn = (numerator / denominator).add(1);
@@ -312,7 +312,7 @@ library TeddyLibrary {
 
     // performs chained getAmountOut calculations on any number of pairs
     function getAmountsOut(address factory, uint amountIn, address[] memory path) internal view returns (uint[] memory amounts) {
-        require(path.length >= 2, 'TeddyLibrary: INVALID_PATH');
+        require(path.length >= 2, 'DRACLibrary: INVALID_PATH');
         amounts = new uint[](path.length);
         amounts[0] = amountIn;
         for (uint i; i < path.length - 1; i++) {
@@ -323,7 +323,7 @@ library TeddyLibrary {
 
     // performs chained getAmountIn calculations on any number of pairs
     function getAmountsIn(address factory, uint amountOut, address[] memory path) internal view returns (uint[] memory amounts) {
-        require(path.length >= 2, 'TeddyLibrary: INVALID_PATH');
+        require(path.length >= 2, 'DRACLibrary: INVALID_PATH');
         amounts = new uint[](path.length);
         amounts[amounts.length - 1] = amountOut;
         for (uint i = path.length - 1; i > 0; i--) {
@@ -356,14 +356,14 @@ interface IWBNB {
     function withdraw(uint) external;
 }
 
-contract TeddyRouter is ITeddyRouter {
+contract DRACRouter is IDRACRouter {
     using SafeMath for uint;
 
     address public immutable override factory;
     address public immutable override WBNB;
 
     modifier ensure(uint deadline) {
-        require(deadline >= block.timestamp, 'TeddyRouter: EXPIRED');
+        require(deadline >= block.timestamp, 'DRACRouter: EXPIRED');
         _;
     }
 
@@ -386,21 +386,21 @@ contract TeddyRouter is ITeddyRouter {
         uint amountBMin
     ) internal virtual returns (uint amountA, uint amountB) {
         // create the pair if it doesn't exist yet
-        if (ITeddyFactory(factory).getPair(tokenA, tokenB) == address(0)) {
-            ITeddyFactory(factory).createPair(tokenA, tokenB);
+        if (IDRACFactory(factory).getPair(tokenA, tokenB) == address(0)) {
+            IDRACFactory(factory).createPair(tokenA, tokenB);
         }
-        (uint reserveA, uint reserveB) = TeddyLibrary.getReserves(factory, tokenA, tokenB);
+        (uint reserveA, uint reserveB) = DRACLibrary.getReserves(factory, tokenA, tokenB);
         if (reserveA == 0 && reserveB == 0) {
             (amountA, amountB) = (amountADesired, amountBDesired);
         } else {
-            uint amountBOptimal = TeddyLibrary.quote(amountADesired, reserveA, reserveB);
+            uint amountBOptimal = DRACLibrary.quote(amountADesired, reserveA, reserveB);
             if (amountBOptimal <= amountBDesired) {
-                require(amountBOptimal >= amountBMin, 'TeddyRouter: INSUFFICIENT_B_AMOUNT');
+                require(amountBOptimal >= amountBMin, 'DRACRouter: INSUFFICIENT_B_AMOUNT');
                 (amountA, amountB) = (amountADesired, amountBOptimal);
             } else {
-                uint amountAOptimal = TeddyLibrary.quote(amountBDesired, reserveB, reserveA);
+                uint amountAOptimal = DRACLibrary.quote(amountBDesired, reserveB, reserveA);
                 assert(amountAOptimal <= amountADesired);
-                require(amountAOptimal >= amountAMin, 'TeddyRouter: INSUFFICIENT_A_AMOUNT');
+                require(amountAOptimal >= amountAMin, 'DRACRouter: INSUFFICIENT_A_AMOUNT');
                 (amountA, amountB) = (amountAOptimal, amountBDesired);
             }
         }
@@ -416,10 +416,10 @@ contract TeddyRouter is ITeddyRouter {
         uint deadline
     ) external virtual override ensure(deadline) returns (uint amountA, uint amountB, uint liquidity) {
         (amountA, amountB) = _addLiquidity(tokenA, tokenB, amountADesired, amountBDesired, amountAMin, amountBMin);
-        address pair = TeddyLibrary.pairFor(factory, tokenA, tokenB);
+        address pair = DRACLibrary.pairFor(factory, tokenA, tokenB);
         TransferHelper.safeTransferFrom(tokenA, msg.sender, pair, amountA);
         TransferHelper.safeTransferFrom(tokenB, msg.sender, pair, amountB);
-        liquidity = ITeddyPair(pair).mint(to);
+        liquidity = IDRACPair(pair).mint(to);
     }
     function addLiquidityBNB(
         address token,
@@ -437,11 +437,11 @@ contract TeddyRouter is ITeddyRouter {
             amountTokenMin,
             amountBNBMin
         );
-        address pair = TeddyLibrary.pairFor(factory, token, WBNB);
+        address pair = DRACLibrary.pairFor(factory, token, WBNB);
         TransferHelper.safeTransferFrom(token, msg.sender, pair, amountToken);
         IWBNB(WBNB).deposit{value: amountBNB}();
         assert(IWBNB(WBNB).transfer(pair, amountBNB));
-        liquidity = ITeddyPair(pair).mint(to);
+        liquidity = IDRACPair(pair).mint(to);
         // refund dust BNB, if any
         if (msg.value > amountBNB) TransferHelper.safeTransferBNB(msg.sender, msg.value - amountBNB);
     }
@@ -456,13 +456,13 @@ contract TeddyRouter is ITeddyRouter {
         address to,
         uint deadline
     ) public virtual override ensure(deadline) returns (uint amountA, uint amountB) {
-        address pair = TeddyLibrary.pairFor(factory, tokenA, tokenB);
-        ITeddyPair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
-        (uint amount0, uint amount1) = ITeddyPair(pair).burn(to);
-        (address token0,) = TeddyLibrary.sortTokens(tokenA, tokenB);
+        address pair = DRACLibrary.pairFor(factory, tokenA, tokenB);
+        IDRACPair(pair).transferFrom(msg.sender, pair, liquidity); // send liquidity to pair
+        (uint amount0, uint amount1) = IDRACPair(pair).burn(to);
+        (address token0,) = DRACLibrary.sortTokens(tokenA, tokenB);
         (amountA, amountB) = tokenA == token0 ? (amount0, amount1) : (amount1, amount0);
-        require(amountA >= amountAMin, 'TeddyRouter: INSUFFICIENT_A_AMOUNT');
-        require(amountB >= amountBMin, 'TeddyRouter: INSUFFICIENT_B_AMOUNT');
+        require(amountA >= amountAMin, 'DRACRouter: INSUFFICIENT_A_AMOUNT');
+        require(amountB >= amountBMin, 'DRACRouter: INSUFFICIENT_B_AMOUNT');
     }
     function removeLiquidityBNB(
         address token,
@@ -495,9 +495,9 @@ contract TeddyRouter is ITeddyRouter {
         uint deadline,
         bool approveMax, uint8 v, bytes32 r, bytes32 s
     ) external virtual override returns (uint amountA, uint amountB) {
-        address pair = TeddyLibrary.pairFor(factory, tokenA, tokenB);
+        address pair = DRACLibrary.pairFor(factory, tokenA, tokenB);
         uint value = approveMax ? uint(-1) : liquidity;
-        ITeddyPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+        IDRACPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         (amountA, amountB) = removeLiquidity(tokenA, tokenB, liquidity, amountAMin, amountBMin, to, deadline);
     }
     function removeLiquidityBNBWithPermit(
@@ -509,9 +509,9 @@ contract TeddyRouter is ITeddyRouter {
         uint deadline,
         bool approveMax, uint8 v, bytes32 r, bytes32 s
     ) external virtual override returns (uint amountToken, uint amountBNB) {
-        address pair = TeddyLibrary.pairFor(factory, token, WBNB);
+        address pair = DRACLibrary.pairFor(factory, token, WBNB);
         uint value = approveMax ? uint(-1) : liquidity;
-        ITeddyPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+        IDRACPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         (amountToken, amountBNB) = removeLiquidityBNB(token, liquidity, amountTokenMin, amountBNBMin, to, deadline);
     }
 
@@ -546,9 +546,9 @@ contract TeddyRouter is ITeddyRouter {
         uint deadline,
         bool approveMax, uint8 v, bytes32 r, bytes32 s
     ) external virtual override returns (uint amountBNB) {
-        address pair = TeddyLibrary.pairFor(factory, token, WBNB);
+        address pair = DRACLibrary.pairFor(factory, token, WBNB);
         uint value = approveMax ? uint(-1) : liquidity;
-        ITeddyPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
+        IDRACPair(pair).permit(msg.sender, address(this), value, deadline, v, r, s);
         amountBNB = removeLiquidityBNBSupportingFeeOnTransferTokens(
             token, liquidity, amountTokenMin, amountBNBMin, to, deadline
         );
@@ -559,11 +559,11 @@ contract TeddyRouter is ITeddyRouter {
     function _swap(uint[] memory amounts, address[] memory path, address _to) internal virtual {
         for (uint i; i < path.length - 1; i++) {
             (address input, address output) = (path[i], path[i + 1]);
-            (address token0,) = TeddyLibrary.sortTokens(input, output);
+            (address token0,) = DRACLibrary.sortTokens(input, output);
             uint amountOut = amounts[i + 1];
             (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
-            address to = i < path.length - 2 ? TeddyLibrary.pairFor(factory, output, path[i + 2]) : _to;
-            ITeddyPair(TeddyLibrary.pairFor(factory, input, output)).swap(
+            address to = i < path.length - 2 ? DRACLibrary.pairFor(factory, output, path[i + 2]) : _to;
+            IDRACPair(DRACLibrary.pairFor(factory, input, output)).swap(
                 amount0Out, amount1Out, to, new bytes(0)
             );
         }
@@ -575,10 +575,10 @@ contract TeddyRouter is ITeddyRouter {
         address to,
         uint deadline
     ) external virtual override ensure(deadline) returns (uint[] memory amounts) {
-        amounts = TeddyLibrary.getAmountsOut(factory, amountIn, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, 'TeddyRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        amounts = DRACLibrary.getAmountsOut(factory, amountIn, path);
+        require(amounts[amounts.length - 1] >= amountOutMin, 'DRACRouter: INSUFFICIENT_OUTPUT_AMOUNT');
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, TeddyLibrary.pairFor(factory, path[0], path[1]), amounts[0]
+            path[0], msg.sender, DRACLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
         _swap(amounts, path, to);
     }
@@ -589,10 +589,10 @@ contract TeddyRouter is ITeddyRouter {
         address to,
         uint deadline
     ) external virtual override ensure(deadline) returns (uint[] memory amounts) {
-        amounts = TeddyLibrary.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= amountInMax, 'TeddyRouter: EXCESSIVE_INPUT_AMOUNT');
+        amounts = DRACLibrary.getAmountsIn(factory, amountOut, path);
+        require(amounts[0] <= amountInMax, 'DRACRouter: EXCESSIVE_INPUT_AMOUNT');
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, TeddyLibrary.pairFor(factory, path[0], path[1]), amounts[0]
+            path[0], msg.sender, DRACLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
         _swap(amounts, path, to);
     }
@@ -604,11 +604,11 @@ contract TeddyRouter is ITeddyRouter {
         ensure(deadline)
         returns (uint[] memory amounts)
     {
-        require(path[0] == WBNB, 'TeddyRouter: INVALID_PATH');
-        amounts = TeddyLibrary.getAmountsOut(factory, msg.value, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, 'TeddyRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        require(path[0] == WBNB, 'DRACRouter: INVALID_PATH');
+        amounts = DRACLibrary.getAmountsOut(factory, msg.value, path);
+        require(amounts[amounts.length - 1] >= amountOutMin, 'DRACRouter: INSUFFICIENT_OUTPUT_AMOUNT');
         IWBNB(WBNB).deposit{value: amounts[0]}();
-        assert(IWBNB(WBNB).transfer(TeddyLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
+        assert(IWBNB(WBNB).transfer(DRACLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
         _swap(amounts, path, to);
     }
     function swapTokensForExactBNB(uint amountOut, uint amountInMax, address[] calldata path, address to, uint deadline)
@@ -618,11 +618,11 @@ contract TeddyRouter is ITeddyRouter {
         ensure(deadline)
         returns (uint[] memory amounts)
     {
-        require(path[path.length - 1] == WBNB, 'TeddyRouter: INVALID_PATH');
-        amounts = TeddyLibrary.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= amountInMax, 'TeddyRouter: EXCESSIVE_INPUT_AMOUNT');
+        require(path[path.length - 1] == WBNB, 'DRACRouter: INVALID_PATH');
+        amounts = DRACLibrary.getAmountsIn(factory, amountOut, path);
+        require(amounts[0] <= amountInMax, 'DRACRouter: EXCESSIVE_INPUT_AMOUNT');
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, TeddyLibrary.pairFor(factory, path[0], path[1]), amounts[0]
+            path[0], msg.sender, DRACLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
         _swap(amounts, path, address(this));
         IWBNB(WBNB).withdraw(amounts[amounts.length - 1]);
@@ -635,11 +635,11 @@ contract TeddyRouter is ITeddyRouter {
         ensure(deadline)
         returns (uint[] memory amounts)
     {
-        require(path[path.length - 1] == WBNB, 'TeddyRouter: INVALID_PATH');
-        amounts = TeddyLibrary.getAmountsOut(factory, amountIn, path);
-        require(amounts[amounts.length - 1] >= amountOutMin, 'TeddyRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        require(path[path.length - 1] == WBNB, 'DRACRouter: INVALID_PATH');
+        amounts = DRACLibrary.getAmountsOut(factory, amountIn, path);
+        require(amounts[amounts.length - 1] >= amountOutMin, 'DRACRouter: INSUFFICIENT_OUTPUT_AMOUNT');
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, TeddyLibrary.pairFor(factory, path[0], path[1]), amounts[0]
+            path[0], msg.sender, DRACLibrary.pairFor(factory, path[0], path[1]), amounts[0]
         );
         _swap(amounts, path, address(this));
         IWBNB(WBNB).withdraw(amounts[amounts.length - 1]);
@@ -653,11 +653,11 @@ contract TeddyRouter is ITeddyRouter {
         ensure(deadline)
         returns (uint[] memory amounts)
     {
-        require(path[0] == WBNB, 'TeddyRouter: INVALID_PATH');
-        amounts = TeddyLibrary.getAmountsIn(factory, amountOut, path);
-        require(amounts[0] <= msg.value, 'TeddyRouter: EXCESSIVE_INPUT_AMOUNT');
+        require(path[0] == WBNB, 'DRACRouter: INVALID_PATH');
+        amounts = DRACLibrary.getAmountsIn(factory, amountOut, path);
+        require(amounts[0] <= msg.value, 'DRACRouter: EXCESSIVE_INPUT_AMOUNT');
         IWBNB(WBNB).deposit{value: amounts[0]}();
-        assert(IWBNB(WBNB).transfer(TeddyLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
+        assert(IWBNB(WBNB).transfer(DRACLibrary.pairFor(factory, path[0], path[1]), amounts[0]));
         _swap(amounts, path, to);
         // refund dust BNB, if any
         if (msg.value > amounts[0]) TransferHelper.safeTransferBNB(msg.sender, msg.value - amounts[0]);
@@ -668,18 +668,18 @@ contract TeddyRouter is ITeddyRouter {
     function _swapSupportingFeeOnTransferTokens(address[] memory path, address _to) internal virtual {
         for (uint i; i < path.length - 1; i++) {
             (address input, address output) = (path[i], path[i + 1]);
-            (address token0,) = TeddyLibrary.sortTokens(input, output);
-            ITeddyPair pair = ITeddyPair(TeddyLibrary.pairFor(factory, input, output));
+            (address token0,) = DRACLibrary.sortTokens(input, output);
+            IDRACPair pair = IDRACPair(DRACLibrary.pairFor(factory, input, output));
             uint amountInput;
             uint amountOutput;
             { // scope to avoid stack too deep errors
             (uint reserve0, uint reserve1,) = pair.getReserves();
             (uint reserveInput, uint reserveOutput) = input == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
             amountInput = IERC20(input).balanceOf(address(pair)).sub(reserveInput);
-            amountOutput = TeddyLibrary.getAmountOut(amountInput, reserveInput, reserveOutput);
+            amountOutput = DRACLibrary.getAmountOut(amountInput, reserveInput, reserveOutput);
             }
             (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOutput) : (amountOutput, uint(0));
-            address to = i < path.length - 2 ? TeddyLibrary.pairFor(factory, output, path[i + 2]) : _to;
+            address to = i < path.length - 2 ? DRACLibrary.pairFor(factory, output, path[i + 2]) : _to;
             pair.swap(amount0Out, amount1Out, to, new bytes(0));
         }
     }
@@ -691,13 +691,13 @@ contract TeddyRouter is ITeddyRouter {
         uint deadline
     ) external virtual override ensure(deadline) {
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, TeddyLibrary.pairFor(factory, path[0], path[1]), amountIn
+            path[0], msg.sender, DRACLibrary.pairFor(factory, path[0], path[1]), amountIn
         );
         uint balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
             IERC20(path[path.length - 1]).balanceOf(to).sub(balanceBefore) >= amountOutMin,
-            'TeddyRouter: INSUFFICIENT_OUTPUT_AMOUNT'
+            'DRACRouter: INSUFFICIENT_OUTPUT_AMOUNT'
         );
     }
     function swapExactBNBForTokensSupportingFeeOnTransferTokens(
@@ -712,15 +712,15 @@ contract TeddyRouter is ITeddyRouter {
         payable
         ensure(deadline)
     {
-        require(path[0] == WBNB, 'TeddyRouter: INVALID_PATH');
+        require(path[0] == WBNB, 'DRACRouter: INVALID_PATH');
         uint amountIn = msg.value;
         IWBNB(WBNB).deposit{value: amountIn}();
-        assert(IWBNB(WBNB).transfer(TeddyLibrary.pairFor(factory, path[0], path[1]), amountIn));
+        assert(IWBNB(WBNB).transfer(DRACLibrary.pairFor(factory, path[0], path[1]), amountIn));
         uint balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
             IERC20(path[path.length - 1]).balanceOf(to).sub(balanceBefore) >= amountOutMin,
-            'TeddyRouter: INSUFFICIENT_OUTPUT_AMOUNT'
+            'DRACRouter: INSUFFICIENT_OUTPUT_AMOUNT'
         );
     }
     function swapExactTokensForBNBSupportingFeeOnTransferTokens(
@@ -735,20 +735,20 @@ contract TeddyRouter is ITeddyRouter {
         override
         ensure(deadline)
     {
-        require(path[path.length - 1] == WBNB, 'TeddyRouter: INVALID_PATH');
+        require(path[path.length - 1] == WBNB, 'DRACRouter: INVALID_PATH');
         TransferHelper.safeTransferFrom(
-            path[0], msg.sender, TeddyLibrary.pairFor(factory, path[0], path[1]), amountIn
+            path[0], msg.sender, DRACLibrary.pairFor(factory, path[0], path[1]), amountIn
         );
         _swapSupportingFeeOnTransferTokens(path, address(this));
         uint amountOut = IERC20(WBNB).balanceOf(address(this));
-        require(amountOut >= amountOutMin, 'TeddyRouter: INSUFFICIENT_OUTPUT_AMOUNT');
+        require(amountOut >= amountOutMin, 'DRACRouter: INSUFFICIENT_OUTPUT_AMOUNT');
         IWBNB(WBNB).withdraw(amountOut);
         TransferHelper.safeTransferBNB(to, amountOut);
     }
 
     // **** LIBRARY FUNCTIONS ****
     function quote(uint amountA, uint reserveA, uint reserveB) public pure virtual override returns (uint amountB) {
-        return TeddyLibrary.quote(amountA, reserveA, reserveB);
+        return DRACLibrary.quote(amountA, reserveA, reserveB);
     }
 
     function getAmountOut(uint amountIn, uint reserveIn, uint reserveOut)
@@ -758,7 +758,7 @@ contract TeddyRouter is ITeddyRouter {
         override
         returns (uint amountOut)
     {
-        return TeddyLibrary.getAmountOut(amountIn, reserveIn, reserveOut);
+        return DRACLibrary.getAmountOut(amountIn, reserveIn, reserveOut);
     }
 
     function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut)
@@ -768,7 +768,7 @@ contract TeddyRouter is ITeddyRouter {
         override
         returns (uint amountIn)
     {
-        return TeddyLibrary.getAmountIn(amountOut, reserveIn, reserveOut);
+        return DRACLibrary.getAmountIn(amountOut, reserveIn, reserveOut);
     }
 
     function getAmountsOut(uint amountIn, address[] memory path)
@@ -778,7 +778,7 @@ contract TeddyRouter is ITeddyRouter {
         override
         returns (uint[] memory amounts)
     {
-        return TeddyLibrary.getAmountsOut(factory, amountIn, path);
+        return DRACLibrary.getAmountsOut(factory, amountIn, path);
     }
 
     function getAmountsIn(uint amountOut, address[] memory path)
@@ -788,6 +788,6 @@ contract TeddyRouter is ITeddyRouter {
         override
         returns (uint[] memory amounts)
     {
-        return TeddyLibrary.getAmountsIn(factory, amountOut, path);
+        return DRACLibrary.getAmountsIn(factory, amountOut, path);
     }
 }
